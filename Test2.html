@@ -1,0 +1,1478 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="https://www.thymeleaf.org">
+
+<head>
+    <meta charset="utf-8">
+    <title>DarkPan - Bootstrap 5 Admin Template</title>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <meta content="" name="keywords">
+    <meta content="" name="description">
+    <style>
+        body {
+            width: 1800px;
+        }
+
+        table,
+        td,
+        th {
+            border: solid 1px;
+            border-collapse: collapse;
+            /* 테이블의 선을 합친다. */
+
+            text-align: center;
+
+        }
+
+        td {
+            height: 70px;
+            width: 70px;
+            font-size: x-large;
+
+        }
+
+        .aInput {
+            width: 60%;
+            height: 60%;
+            border: 0.1px solid rgb(212, 175, 148);
+            text-align: center;
+            border-radius: 7px;
+            font-size: large;
+        }
+
+
+
+        .light {
+            width: 3px;
+            height: 3px;
+            display: none;
+            position: absolute;
+        }
+
+        .alpha {
+            height: 30px;
+            margin: -2.2px;
+            position: absolute;
+        }
+
+        #one{
+            height: 30px;
+            width: 30px;
+            background-color: blue;
+            position: absolute;
+            left: -100px;
+            
+        }
+
+    </style>
+
+</head>
+
+<body style="overflow: hidden;">
+
+    <div id="one"></div>
+    <table id="tb" style="left:20%; top: 10%; position: absolute;">
+
+
+    </table>
+
+</body>
+
+<script src="https://code.jquery.com/jquery-3.6.1.js"></script>
+<script>
+
+    let inputMaze = '';
+
+    let aChar = 'a';
+    let tbChar = 'a';
+    let tbNum = 0;
+
+    let table = [];
+
+    let mazeWid = 10;
+    let mazeHei = 10;
+    let mazePer = 4;    // 4부터(25퍼센트 직진도)~ 10(70퍼센트 직진도)
+
+    // 방향 동1 서2 남3 북4 / 현재위치 alp/ 현재위치 num / 전 회전칸 위치 /
+    let one = [1, tbChar, 0];
+    let dir = 1;    // 누적방향
+    let curPos = '';    // 현재위치
+    let rot = [[tbChar, 0]]; // 회전칸 배열
+    let rotLen = rot.length;
+
+    mazeMake();
+
+
+    function mazeMake() {
+
+        for (let i = 0; i < mazeHei; i++) {
+
+            inputMaze += '<tr>';
+
+            for (let j = 0; j < mazeWid; j++) {
+
+                if (j == (mazeWid - 1) && i == 0) {     // 시작점
+                    inputMaze += '<td id="' + tbChar + tbNum + '"><div style="width:30px; height:30px; background-color:blue;"></div></td>';
+                } else if (i == (mazeHei - 1) && j == 0) {  // 도착점
+                    inputMaze += '<td id="' + tbChar + tbNum + '"><div id="oneStart" opacity:0;></div></td>';
+                } else {  // 일반 길
+                    inputMaze += '<td id="' + tbChar + tbNum + '"></td>';
+                }
+
+
+
+                // 테이블 위치번호 / 지난적없음 0, 지난적있음 1 / 안 지난 칸 0 , 직진칸 1 , 회전칸 2 / (회전일 때)[동,서,남,북] 남은 방향 / 연결된 전 회전칸 위치 [tbChar + num]
+                table.push([tbChar + tbNum, 0, 0, [0, 0, 0, 0], []]);
+
+                tbNum++;
+            }
+            inputMaze += '</tr>';
+            tbChar = String.fromCharCode(tbChar.charCodeAt(0) + 1);
+
+            tbNum = 0;
+        }
+
+        $('#tb').html(inputMaze);
+        tbChar = String.fromCharCode(tbChar.charCodeAt(0) - 1);  // 마지막 위치 초기화 
+
+        for (let i = 0; i < mazeWid * mazeHei; i++) { // 처음 길
+
+            if (one[0] == 1) { // 동쪽 이동 중
+                if (i == 0) {
+                    dir = 1;
+                } else {
+                    dir = Math.floor(Math.random() * mazePer + 1);
+                }
+                if (dir == 1 || (5 <= dir && dir <= mazePer)) {    // 동쪽
+                    dirEastS();
+                } else if (dir == 3) { // 남쪽
+                    dirSouthR();
+                } else if (dir == 4) { // 북쪽
+                    dirNorthR();
+                } else {  // 서쪽 (작동 x)
+
+                }
+
+            } else if (one[0] == 2) {  // 서쪽 이동 중
+                dir = Math.floor(Math.random() * mazePer + 1);
+                if (dir == 2 || (5 <= dir && dir <= mazePer)) {    // 서쪽
+                    dirWestS();
+                } else if (dir == 3) { // 남쪽
+                    dirSouthR();
+                } else if (dir == 4) { // 북쪽
+                    dirNorthR();
+                } else {  // 동쪽 (작동 x)
+
+                }
+
+            } else if (one[0] == 3) {  // 남쪽 이동 중
+                dir = Math.floor(Math.random() * mazePer + 1);
+                if (dir == 3 || (5 <= dir && dir <= mazePer)) {    // 남쪽
+                    dirSouthS();
+                } else if (dir == 1) { // 동쪽
+                    dirEastR();
+                } else if (dir == 2) { // 서쪽
+                    dirWestR();
+                } else {  // 북쪽 (작동 x)
+
+                }
+
+            } else {  // 북쪽 이동 중
+                dir = Math.floor(Math.random() * mazePer + 1);
+                if (dir == 4 || (5 <= dir && dir <= mazePer)) {    // 북쪽
+                    dirNorthS();
+                } else if (dir == 1) { // 동쪽
+                    dirEastR();
+                } else if (dir == 2) { // 서쪽
+                    dirWestR();
+                } else {  // 남쪽 (작동 x)
+
+                }
+            }
+        }
+
+        for (let j = 1; j < rotLen; j++) {  // 두번째 갈래길
+            let int0 = (rot[j][0].charCodeAt(0) - aChar.charCodeAt(0)) * mazeWid + rot[j][1];
+            let dir2 = table[int0][3].indexOf(0) + 1;
+            one[0] = dir2;
+            one[1] = rot[j][0];
+            one[2] = rot[j][1];
+
+            if (dir2 == 1) {    // 동쪽 이동
+                dirEastS();
+            } else if (dir2 == 2) {    // 서쪽 이동
+                dirWestS();
+            } else if (dir2 == 3) {    // 남쪽 이동
+                dirSouthS();
+            } else {            // 북쪽 이동
+                dirNorthS();
+            }
+
+            for (let i = 0; i < mazeWid * mazeHei; i++) {
+                if (one[0] == 1) { // 동쪽 이동 중
+                    if (i == 0) {
+                        dir = 1;
+                    } else {
+                        dir = Math.floor(Math.random() * mazePer + 1);
+                    }
+                    if (dir == 1 || (5 <= dir && dir <= mazePer)) {    // 동쪽
+                        dirEastS();
+                    } else if (dir == 3) { // 남쪽
+                        dirSouthR();
+                    } else if (dir == 4) { // 북쪽
+                        dirNorthR();
+                    } else {  // 서쪽 (작동 x)
+
+                    }
+
+                } else if (one[0] == 2) {  // 서쪽 이동 중
+                    dir = Math.floor(Math.random() * mazePer + 1);
+                    if (dir == 2 || (5 <= dir && dir <= mazePer)) {    // 서쪽
+                        dirWestS();
+                    } else if (dir == 3) { // 남쪽
+                        dirSouthR();
+                    } else if (dir == 4) { // 북쪽
+                        dirNorthR();
+                    } else {  // 동쪽 (작동 x)
+
+                    }
+
+                } else if (one[0] == 3) {  // 남쪽 이동 중
+                    dir = Math.floor(Math.random() * mazePer + 1);
+                    if (dir == 3 || (5 <= dir && dir <= mazePer)) {    // 남쪽
+                        dirSouthS();
+                    } else if (dir == 1) { // 동쪽
+                        dirEastR();
+                    } else if (dir == 2) { // 서쪽
+                        dirWestR();
+                    } else {  // 북쪽 (작동 x)
+
+                    }
+
+                } else {  // 북쪽 이동 중
+                    dir = Math.floor(Math.random() * mazePer + 1);
+                    if (dir == 4 || (5 <= dir && dir <= mazePer)) {    // 북쪽
+                        dirNorthS();
+                    } else if (dir == 1) { // 동쪽
+                        dirEastR();
+                    } else if (dir == 2) { // 서쪽
+                        dirWestR();
+                    } else {  // 남쪽 (작동 x)
+
+                    }
+                }
+            }
+        }
+
+        for (let k = 0; k < 5; k++) {     // 이후 추가로 다섯번 갈래길
+
+            let rotLen2 = rot.length;
+            for (j = rotLen; j < rotLen2; j++) {
+                let int0 = (rot[j][0].charCodeAt(0) - aChar.charCodeAt(0)) * mazeWid + rot[j][1];
+                let dir2 = table[int0][3].indexOf(0) + 1;
+                one[0] = dir2;
+                one[1] = rot[j][0];
+                one[2] = rot[j][1];
+
+                if (dir2 == 1) {    // 동쪽 이동
+                    dirEastS();
+                } else if (dir2 == 2) {    // 서쪽 이동
+                    dirWestS();
+                } else if (dir2 == 3) {    // 남쪽 이동
+                    dirSouthS();
+                } else {            // 북쪽 이동
+                    dirNorthS();
+                }
+
+                for (let i = 0; i < mazeWid * mazeHei; i++) {
+                    if (one[0] == 1) { // 동쪽 이동 중
+                        if (i == 0) {
+                            dir = 1;
+                        } else {
+                            dir = Math.floor(Math.random() * mazePer + 1);
+                        }
+                        if (dir == 1 || (5 <= dir && dir <= mazePer)) {    // 동쪽
+                            dirEastS();
+                        } else if (dir == 3) { // 남쪽
+                            dirSouthR();
+                        } else if (dir == 4) { // 북쪽
+                            dirNorthR();
+                        } else {  // 서쪽 (작동 x)
+
+                        }
+
+                    } else if (one[0] == 2) {  // 서쪽 이동 중
+                        dir = Math.floor(Math.random() * mazePer + 1);
+                        if (dir == 2 || (5 <= dir && dir <= mazePer)) {    // 서쪽
+                            dirWestS();
+                        } else if (dir == 3) { // 남쪽
+                            dirSouthR();
+                        } else if (dir == 4) { // 북쪽
+                            dirNorthR();
+                        } else {  // 동쪽 (작동 x)
+
+                        }
+
+                    } else if (one[0] == 3) {  // 남쪽 이동 중
+                        dir = Math.floor(Math.random() * mazePer + 1);
+                        if (dir == 3 || (5 <= dir && dir <= mazePer)) {    // 남쪽
+                            dirSouthS();
+                        } else if (dir == 1) { // 동쪽
+                            dirEastR();
+                        } else if (dir == 2) { // 서쪽
+                            dirWestR();
+                        } else {  // 북쪽 (작동 x)
+
+                        }
+
+                    } else {  // 북쪽 이동 중
+                        dir = Math.floor(Math.random() * mazePer + 1);
+                        if (dir == 4 || (5 <= dir && dir <= mazePer)) {    // 북쪽
+                            dirNorthS();
+                        } else if (dir == 1) { // 동쪽
+                            dirEastR();
+                        } else if (dir == 2) { // 서쪽
+                            dirWestR();
+                        } else {  // 남쪽 (작동 x)
+
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    function dirEastS() {   // 동쪽 직진칸
+
+        try {
+            curPos = one[1] + (one[2] + 1);
+            if ($('#' + curPos).length == 1) {  // 존재할 때
+                let int0 = (one[1].charCodeAt(0) - aChar.charCodeAt(0)) * mazeWid + one[2];  // 전 테이블 번호 
+                let int = (one[1].charCodeAt(0) - aChar.charCodeAt(0)) * mazeWid + (one[2] + 1);  // 후 테이블 번호
+
+                if (table[int][1] == 0) { // 지난적 없을 때 작동
+                    $('#' + one[1] + one[2]).css({ 'border-right': '0px' });
+                    $('#' + curPos).css({ 'border-left': '0px' });
+
+                    // 후 처리
+                    table[int0][1] = 1;
+                    table[int0][2] = 1;
+                    one[2] = (one[2] + 1);
+                    one[0] = 1;
+
+                } else {
+
+                }
+            }
+        } catch (error) {
+        }
+    }
+
+    function dirEastR() {   // 동쪽 회전칸
+
+        try {
+            curPos = one[1] + (one[2] + 1);
+            if ($('#' + curPos).length == 1) {  // 존재할 때
+                let int0 = (one[1].charCodeAt(0) - aChar.charCodeAt(0)) * mazeWid + one[2];  // 전 테이블 번호 
+                let int = (one[1].charCodeAt(0) - aChar.charCodeAt(0)) * mazeWid + (one[2] + 1);  // 후 테이블 번호
+
+                if (table[int][1] == 0) { // 지난적 없을 때 작동
+                    $('#' + one[1] + one[2]).css({ 'border-right': '0px' });
+                    $('#' + curPos).css({ 'border-left': '0px' });
+
+                    if (dir == 3) {   // 동쪽 + 남쪽
+                        table[int0][3] = [1, 0, 1, 0];
+                    } else {  // 동쪽 + 북쪽
+                        table[int0][3] = [1, 0, 0, 1];
+                    }
+                    table[int0][4] = [rot[(rot.length - 1)]];
+                    rot.push([one[1], one[2]]);
+
+                    // 후 처리
+                    table[int0][1] = 1;
+                    table[int0][2] = 2;
+                    one[2] = (one[2] + 1);
+                    one[0] = 1;
+
+                } else {
+
+                }
+            }
+        } catch (error) {
+        }
+    }
+
+    function dirWestS() {   // 서쪽 직진칸
+
+        try {
+            curPos = one[1] + (one[2] - 1);
+            if ($('#' + curPos).length == 1) {  // 존재할 때
+                let int0 = (one[1].charCodeAt(0) - aChar.charCodeAt(0)) * mazeWid + one[2];  // 전 테이블 번호 
+                let int = (one[1].charCodeAt(0) - aChar.charCodeAt(0)) * mazeWid + (one[2] - 1);  // 후 테이블 번호
+                if (table[int][1] == 0) { // 지난적 없을 때 작동
+                    $('#' + one[1] + one[2]).css({ 'border-left': '0px' });
+                    $('#' + curPos).css({ 'border-right': '0px' });
+
+                    // 후 처리
+                    table[int0][1] = 1;
+                    table[int0][2] = 1;
+                    one[2] = (one[2] - 1);
+                    one[0] = 2;
+                } else {
+
+                }
+            }
+        } catch (error) {
+        }
+
+    }
+
+    function dirWestR() {   // 서쪽 회전칸
+
+        try {
+            curPos = one[1] + (one[2] - 1);
+            if ($('#' + curPos).length == 1) {  // 존재할 때
+                let int0 = (one[1].charCodeAt(0) - aChar.charCodeAt(0)) * mazeWid + one[2];  // 전 테이블 번호 
+                let int = (one[1].charCodeAt(0) - aChar.charCodeAt(0)) * mazeWid + (one[2] - 1);  // 후 테이블 번호
+                if (table[int][1] == 0) { // 지난적 없을 때 작동
+                    $('#' + one[1] + one[2]).css({ 'border-left': '0px' });
+                    $('#' + curPos).css({ 'border-right': '0px' });
+
+                    if (dir == 3) {   // 서쪽 + 남쪽
+                        table[int0][3] = [0, 1, 1, 0];
+                    } else {  // 동쪽 + 북쪽
+                        table[int0][3] = [0, 1, 0, 1];
+                    }
+                    table[int0][4] = [rot[(rot.length - 1)]];
+                    rot.push([one[1], one[2]]);
+
+                    // 후 처리
+                    table[int0][1] = 1;
+                    table[int0][2] = 2;
+                    one[2] = (one[2] - 1);
+                    one[0] = 2;
+
+
+                } else {
+
+                }
+            }
+        } catch (error) {
+        }
+
+    }
+
+    function dirSouthS() {  // 남쪽 직진칸
+
+        try {
+            curPos = String.fromCharCode(one[1].charCodeAt(0) + 1) + (one[2]);
+            if ($('#' + curPos).length == 1) {  // 존재할 때
+                let int0 = (one[1].charCodeAt(0) - aChar.charCodeAt(0)) * mazeWid + one[2];  // 전 테이블 번호 
+                let int = ((one[1].charCodeAt(0) + 1) - aChar.charCodeAt(0)) * mazeWid + one[2];  // 후 테이블 번호
+                if (table[int][1] == 0) { // 지난적 없을 때 작동
+                    $('#' + one[1] + one[2]).css({ 'border-bottom': '0px' });
+                    $('#' + curPos).css({ 'border-top': '0px' });
+
+                    // 후 처리
+                    table[int0][1] = 1;
+                    table[int0][2] = 1;
+                    one[1] = String.fromCharCode(one[1].charCodeAt(0) + 1);
+                    one[0] = 3;
+                } else {
+
+                }
+            }
+        } catch (error) {
+        }
+
+    }
+
+    function dirSouthR() {  // 남쪽 회전칸
+
+        try {
+            curPos = String.fromCharCode(one[1].charCodeAt(0) + 1) + (one[2]);
+            if ($('#' + curPos).length == 1) {  // 존재할 때
+                let int0 = (one[1].charCodeAt(0) - aChar.charCodeAt(0)) * mazeWid + one[2];  // 전 테이블 번호 
+                let int = ((one[1].charCodeAt(0) + 1) - aChar.charCodeAt(0)) * mazeWid + one[2];  // 후 테이블 번호
+                if (table[int][1] == 0) { // 지난적 없을 때 작동
+                    $('#' + one[1] + one[2]).css({ 'border-bottom': '0px' });
+                    $('#' + curPos).css({ 'border-top': '0px' });
+
+                    if (dir == 1) {   // 남쪽 + 동쪽
+                        table[int0][3] = [1, 0, 1, 0];
+                    } else {  // 남쪽 + 서쪽
+                        table[int0][3] = [0, 1, 1, 0];
+                    }
+                    table[int0][4] = [rot[(rot.length - 1)]];
+                    rot.push([one[1], one[2]]);
+
+                    // 후 처리
+                    table[int0][1] = 1;
+                    table[int0][2] = 2;
+                    one[1] = String.fromCharCode(one[1].charCodeAt(0) + 1);
+                    one[0] = 3;
+
+
+                } else {
+
+                }
+            }
+        } catch (error) {
+        }
+
+    }
+
+    function dirNorthS() {  // 북쪽 직진칸
+
+        try {
+            curPos = String.fromCharCode(one[1].charCodeAt(0) - 1) + (one[2]);
+            if ($('#' + curPos).length == 1) {  // 존재할 때
+                let int0 = (one[1].charCodeAt(0) - aChar.charCodeAt(0)) * mazeWid + one[2];  // 전 테이블 번호 
+                let int = ((one[1].charCodeAt(0) - 1) - aChar.charCodeAt(0)) * mazeWid + one[2];  // 후 테이블 번호
+                if (table[int][1] == 0) { // 지난적 없을 때 작동
+                    $('#' + one[1] + one[2]).css({ 'border-top': '0px' });
+                    $('#' + curPos).css({ 'border-bottom': '0px' });
+
+                    // 후 처리
+                    table[int0][1] = 1;
+                    table[int0][2] = 1;
+                    one[1] = String.fromCharCode(one[1].charCodeAt(0) - 1);
+                    one[0] = 4;
+                } else {
+
+
+                }
+            }
+        } catch (error) {
+        }
+
+    }
+
+    function dirNorthR() {  // 북쪽 회전칸
+
+        try {
+            curPos = String.fromCharCode(one[1].charCodeAt(0) - 1) + (one[2]);
+            if ($('#' + curPos).length == 1) {  // 존재할 때
+                let int0 = (one[1].charCodeAt(0) - aChar.charCodeAt(0)) * mazeWid + one[2];  // 전 테이블 번호 
+                let int = ((one[1].charCodeAt(0) - 1) - aChar.charCodeAt(0)) * mazeWid + one[2];  // 후 테이블 번호
+                if (table[int][1] == 0) { // 지난적 없을 때 작동
+                    $('#' + one[1] + one[2]).css({ 'border-top': '0px' });
+                    $('#' + curPos).css({ 'border-bottom': '0px' });
+
+                    if (dir == 1) {   // 북쪽 + 동쪽
+                        table[int0][3] = [1, 0, 0, 1];
+                    } else {  // 북쪽 + 서쪽
+                        table[int0][3] = [0, 1, 0, 1];
+                    }
+                    table[int0][4] = [rot[(rot.length - 1)]];
+                    rot.push([one[1], one[2]]);
+
+                    // 후 처리
+                    table[int0][1] = 1;
+                    table[int0][2] = 2;
+                    one[1] = String.fromCharCode(one[1].charCodeAt(0) - 1);
+                    one[0] = 4;
+
+                } else {
+                }
+            }
+        } catch (error) {
+        }
+
+    }
+
+
+    // ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ maze 스크립트 구분
+
+
+    // 화면크기의 직사각형
+    let bigX1 = $('#tb').offset().left - 100;
+    let bigX2 = $('#tb').offset().left + 900;
+    let bigY1 = $('#tb').offset().top - 100;
+    let bigY2 = $('#tb').offset().top + 900;
+
+    // 내부의 지나가야하는 직사각형
+    let smallX1 = bigX1 + 150;
+    let smallX2 = bigX2 - 150;
+    let smallY1 = bigY1 + 150;
+    let smallY2 = bigY2 - 150;
+
+    // 원의 중심이 위치하는 직사각형    (반지름은 100~250)
+    let midX1 = smallX1;
+    let midX2 = smallX2;
+    let midY1 = smallY1;
+    let midY2 = smallY2;
+
+    //              quad 4
+    //         ┌──────────────┐
+    //         |              |
+    //         |     ┌──┐     |
+    //  quad3  |     |  |     |   quad 1
+    //         |     └──┘     |
+    //         |              |
+    //         └──────────────┘
+    //              quad 2
+
+    // quad 1 오른쪽면 가능 범위
+    let quad1Deg1 = Math.ceil(Math.atan((bigY2 - smallY1) / (bigX2 - smallX2)) * 180 / Math.PI) + 90;      // 135 ~
+    let quad1Deg2 = Math.ceil(Math.atan((smallY2 - bigY1) / (bigX2 - smallX2)) * 180 / Math.PI) + 180;    // ~ 218
+
+    let quad2Deg1 = Math.ceil(Math.atan((bigY2 - smallY2) / (smallX2 - bigX1)) * 180 / Math.PI);          // 27 ~
+    let quad2Deg2 = 180 - Math.ceil(Math.atan((bigY2 - smallY2) / (bigX2 - smallX1)) * 180 / Math.PI);     // ~ 155
+
+    let quad3Deg1 = Math.ceil(Math.atan((bigY2 - smallY2) / (bigY2 - smallY1)) * 180 / Math.PI);          // 0 ~ 34
+    let quad3Deg2 = 360 - Math.ceil(Math.atan((smallY2 - bigY1) / (smallX1 - bigX1)) * 180 / Math.PI);    // 318 ~ 360
+
+    let quad4Deg1 = Math.ceil(Math.atan((smallY1 - bigY1) / (bigX2 - smallX1)) * 180 / Math.PI) + 180;     // 198 ~ 
+    let quad4Deg2 = 360 - Math.ceil(Math.atan((smallY1 - bigY1) / (smallX2 - bigX1)) * 180 / Math.PI);     // ~ 341
+
+    let quad = 0;
+    let startX = 0;
+    let startY = 0;
+
+    let count = 0;
+    let shipArr = Array();
+
+    let deg = 0;
+    let rotDeg = 0;
+
+
+    let voca = [];
+    voca.push('bear');
+    voca.push('entitle');
+    voca.push('confidence');
+    voca.push('recruit');
+    voca.push('employee');
+    voca.push('cat');
+    voca.push('deligent');
+    voca.push('resume');
+    voca.push('opening');
+    voca.push('apple');
+    voca.push('beart');
+    voca.push('entittle');
+    voca.push('confitdence');
+    voca.push('recrtuit');
+    voca.push('emptloyee');
+
+    let vocaHw = [];
+
+
+
+
+    let vocaLen = [];
+    for (let i = 0; i < voca.length; i++) {
+        vocaLen.push(voca[i].length);
+    }
+
+
+    let eX = [];      // 마우스 x위치
+    let eY = [];      // 마우스 y위치
+    let xball = [];
+    let yball = [];
+    let xLen = [];       // x 탄성길이
+    let yLen = [];       // y 탄성길이
+    let xForce = [];     // x 총힘
+    let yForce = [];     // y 총힘
+    let ranDeg = [];
+    let leftForce = [];
+    let topForce = [];
+    let leftTerm = [];
+    let topTerm = [];
+    let lightDeg = 0;
+
+    for (let i = 0; i < voca.length; i++) {
+
+        eX.push([]);
+        eY.push([]);
+        xball.push([]);
+        yball.push([]);
+        xLen.push([]);
+        yLen.push([]);
+        xForce.push([]);
+        yForce.push([]);
+        leftForce.push([]);
+        topForce.push([]);
+    }
+
+    let radius = 67.5;
+    let big = 55;   // 질량, 크기(반지름)
+    let k = 2;        // 탄성계수
+    let mu = 0.1;       // 마찰계수
+    let g = 9.81;       // 중력가속도
+    let damping = mu * g * big * 0;    // 마찰력
+
+    // 움직이는 메소드
+    function move() {
+
+        for (let j = 0; j < shipArr.length; j++) {
+            for (let i = 0; i < vocaLen[j]; i++) {
+                xLen[j][i] = (eX[j][i] - $('#' + voca[j] + i).offset().left);
+                yLen[j][i] = (eY[j][i] - $('#' + voca[j] + i).offset().top);
+
+
+
+                if (xLen[j][i] > 0) {
+                    xForce[j][i] = xLen[j][i] * k - damping;
+                    if (xForce[j][i] < 0) {
+                        xForce[j][i] = 0;
+                    }
+                } else if (xLen[j][i] < 0) {
+                    xForce[j][i] = xLen[j][i] * k + damping;
+                    if (xForce[j][i] > 0) {
+                        xForce[j][i] = 0;
+                    }
+                } else {
+                    xForce[j][i] = 0;
+                }
+                if (yLen[j][i] > 0) {
+                    yForce[j][i] = yLen[j][i] * k - damping;
+                    if (yForce[j][i] < 0) {
+                        yForce[j][i] = 0;
+                    }
+                } else if (yLen[j][i] < 0) {
+                    yForce[j][i] = yLen[j][i] * k + damping;
+                    if (yForce[j][i] > 0) {
+                        yForce[j][i] = 0;
+                    }
+                } else {
+                    yForce[j][i] = 0;
+                }
+            }
+
+
+
+            deg = getAngle($('#' + voca[j] + '0').offset().left, $('#' + voca[j] + '0').offset().top, eX[j][0], eY[j][0]) + 180;
+
+
+
+            for (let i = 0; i < vocaLen[j]; i++) {
+
+
+                $('#' + voca[j] + i).css('left', xball[j][i] + xForce[j][i] * 0.1 * 0.2 + leftForce[j] + 'px');
+                $('#' + voca[j] + i).css('top', yball[j][i] + yForce[j][i] * 0.1 * 0.2 + topForce[j] + 'px');
+                if (ranDeg[j] >= -90 && ranDeg[j] <= 90) {
+                    $('#' + voca[j] + i).css('rotate', deg - 90 + "deg");
+                } else {
+                    $('#' + voca[j] + i).css('rotate', deg + 90 + "deg");
+                }
+                if (i != 0) {
+                    xball[j][i] = $('#' + voca[j] + (i - 1)).offset().left;
+                    yball[j][i] = $('#' + voca[j] + (i - 1)).offset().top;
+                } else {
+                    xball[j][i] = $('#' + voca[j] + i).offset().left;
+                    yball[j][i] = $('#' + voca[j] + i).offset().top;
+                }
+
+            }
+
+        }
+
+    }
+    function repeatMove() {  // 프레임 1초에 60번, 0.017초 마다/ 0.25초에 15번
+
+        requestAnimationFrame(move);
+        requestAnimationFrame(repeatMove, 100);
+
+    }
+    function getAngle(x1, y1, x2, y2) {
+        let a;
+        if (y1 == y2) {
+            if (x2 < x1) {
+                a = -90;
+            } else {
+                a = 90;
+            }
+        } else if (x1 == x2 && y2 > y1) {
+            a = 180;
+        } else {
+            const rad = Math.atan((x2 - x1) / (y1 - y2));
+            a = rad * 180 / Math.PI;
+
+            if (y2 > y1 && x2 > x1) {
+                a = 180 + a;
+            } else if (y2 > y1 && x2 < x1) {
+                a = -180 + a;
+            }
+        }
+        return a;
+    }
+
+
+    let moveOn = false;
+    
+
+    // 단어 만드는 메소드
+    setInterval(() => {
+
+        let countSum = 0;
+        for(let i = 0 ; i < shipArr.length; i++){
+            if($('.'+shipArr[i][7]).css('display') != "none"){
+                countSum++;
+            }
+        }
+        console.log(countSum);
+
+        if(countSum <= 7){
+
+        if (count >= voca.length) {
+            return;
+        }
+
+        deg = Math.floor(Math.random() * 360);
+
+        if (deg > 155 && deg < 198) {
+            quad = 1;
+            startX = bigX2;
+            startY = Math.floor(Math.random() * (smallY2 - smallY1) + Math.round(smallY1 + (bigX2 - smallX2) * (Math.tan(deg * Math.PI / 180))));
+        } else if (deg > 34 && deg < 135) {
+            quad = 2;
+            startX = Math.floor(Math.random() * (smallX2 - smallX1) + Math.round(smallX1 + (bigY2 - smallY2) / (Math.tan(deg * Math.PI / 180))));
+            startY = bigY2;
+            deg -= 180;
+        } else if ((deg >= 0 && deg < 27) || (deg > 341 && deg <= 360)) {
+            quad = 3;
+            startX = bigX1;
+            startY = Math.floor(Math.random() * (smallY2 - smallY1) + Math.round(smallY1 + (smallX1 - bigX1) * (-Math.tan(deg * Math.PI / 180))));
+
+        } else if (deg > 218 && deg < 318) {
+            quad = 4;
+            startX = Math.floor(Math.random() * (smallX2 - smallX1) + Math.round(smallX1 + (smallY1 - bigY1) / (-Math.tan(deg * Math.PI / 180))));
+            startY = bigY1;
+            deg -= 180;
+        } else if (deg >= 27 && deg <= 34) {
+            // 3, 2
+            quad = Math.floor(Math.random() * 2 + 2);
+            if (quad == 2) {
+                startX = Math.floor(Math.random() * (smallX2 - smallX1) + Math.round(smallX1 + (bigY2 - smallY2) / (Math.tan(deg * Math.PI / 180))));
+                startY = bigY2;
+                deg -= 180;
+            } else {  // 3
+                startX = bigX1;
+                startY = Math.floor(Math.random() * (smallY2 - smallY1) + Math.round(smallY1 + (smallX1 - bigX1) * (-Math.tan(deg * Math.PI / 180))));
+            }
+        } else if (deg >= 135 && deg <= 155) {
+            // 1, 2
+            quad = Math.floor(Math.random() * 2 + 1);
+            if (quad == 1) {
+                startX = bigX2;
+                startY = Math.floor(Math.random() * (smallY2 - smallY1) + Math.round(smallY1 + (bigX2 - smallX2) * (Math.tan(deg * Math.PI / 180))));
+            } else {  // 2
+                startX = Math.floor(Math.random() * (smallX2 - smallX1) + Math.round(smallX1 + (bigY2 - smallY2) / (Math.tan(deg * Math.PI / 180))));
+                startY = bigY2;
+                deg -= 180;
+            }
+        } else if (deg >= 198 && deg <= 218) {
+            // 1, 4
+            quad = Math.floor(Math.random() * 2 + 1);
+            if (quad == 2) {  // 4
+                quad = 4;
+                startX = Math.floor(Math.random() * (smallX2 - smallX1) + Math.round(smallX1 + (smallY1 - bigY1) / (-Math.tan(deg * Math.PI / 180))));
+                startY = bigY1;
+                deg -= 180;
+            } else {  // 1
+                startX = bigX2;
+                startY = Math.floor(Math.random() * (smallY2 - smallY1) + Math.round(smallY1 + (bigX2 - smallX2) * (Math.tan(deg * Math.PI / 180))));
+                quad = 5;
+
+            }
+        } else if (deg >= 318 && deg <= 341) {
+            // 3, 4
+            quad = Math.floor(Math.random() * 2 + 3);
+            if (quad == 3) {
+                startX = bigX1;
+                startY = Math.floor(Math.random() * (smallY2 - smallY1) + Math.round(smallY1 + (smallX1 - bigX1) * (-Math.tan(deg * Math.PI / 180))));
+            } else {  // 4
+                startX = Math.floor(Math.random() * (smallX2 - smallX1) + Math.round(smallX1 + (smallY1 - bigY1) / (-Math.tan(deg * Math.PI / 180))));
+                startY = bigY1;
+                deg -= 180;
+            }
+        } else {
+
+        }
+
+        // 내부에 랜덤으로 지나는 박스 
+        let midPointX = Math.floor(Math.random() * (midX2 - midX1) + midX1);
+        let midPointY = Math.floor(Math.random() * (midY2 - midY1) + midY1);
+
+
+        // 각도 계산 deg 
+        // 1, 0     // 0도 벡터
+        deg = -Math.acos((midPointX - startX) / (Math.pow(Math.pow((midPointX - startX), 2) + Math.pow((midPointY - startY), 2), 1 / 2))) * 180 / Math.PI;    // →(0도) 방향부터 도착점까지 각도
+        if (quad == 2 || quad == 3) {
+            deg = -deg;
+        }
+        if (quad == 2 || quad == 4) {
+            rotDeg = deg;
+            if (quad == 2) {
+                rotDeg = 90 + (90 - rotDeg);
+            } else {
+                rotDeg = -90 + (-90 - rotDeg);
+            }
+        } else if (quad == 1 || quad == 3) {
+            rotDeg = deg + 180;
+            if (quad == 1) {
+                rotDeg = -rotDeg;
+
+            } else {
+                rotDeg = -deg;
+                if (midPointY > startY) {
+                    deg = -deg;
+                    rotDeg = -deg;
+                }
+                if (rotDeg > 0) {
+                    rotDeg = rotDeg - 180;
+                } else {
+                    rotDeg = rotDeg + 180;
+                }
+            }
+        } else if (quad == 5) {
+            deg = -180 + (-180 - deg);
+            rotDeg = -180 + (-180 - deg);
+
+            if (midPointY > startY) {
+                deg = -180 + (-180 - deg);
+                rotDeg = -180 + (-180 - deg);
+            }
+            if (rotDeg < 0) {
+                rotDeg += 180;
+            }
+
+
+        }
+
+
+        let speed = Math.floor(Math.random() * 5 + 30);
+
+        let input = '<div id="light' + count + '" class="light"></div>';
+        for (let j = 0; j < vocaLen[count]; j++) {
+            input += '<img src="./알파벳/' + voca[count].charAt(j).toUpperCase() + '.png" alt="" class="' + voca[count] + ' alpha" id="' + voca[count] + j + '" style="left:' + startX + 'px; top:' + startY + 'px;">'
+        }
+        $('body').append(input);
+
+        if (rotDeg >= 360) {
+            rotDeg = rotDeg - 360;
+        }
+        if (rotDeg <= -360) {
+            rotDeg = rotDeg + 360;
+        }
+
+
+
+        ranDeg.push(-rotDeg);
+        // 인덱스, 각도, 시작x위치, 시작y위치, 사분면 번호, 도는 각도, 도는 속도, 알파벳 아이디
+        shipArr.push([count, deg, startX, startY, quad, -rotDeg, speed, voca[count]]);
+        count++;
+
+        // 생성 후에 애니메이션
+        if (!moveOn) {
+            repeatMove();
+            moveOn = true;
+        }
+        }
+    }, 1000);
+
+
+    // let speed = Math.floor(Math.random()*5 +1);
+    let playSecond = 100;    // 1000 : 1초
+
+    setInterval(() => {
+
+        if (shipArr.length >= 1) {
+
+            for (let i = 0; i < shipArr.length; i++) {
+
+
+                // [0]인덱스
+                // [1]각도
+                // [2]시작x위치 (현재x위치)
+                // [3]시작y위치 (현재y위치)
+                // [4]사분면 번호
+                // [5]도는 각도
+                // [6]랜덤 스피드
+                // [7]알파벳 아이디
+
+                // 다음위치 계산
+                shipArr[i][6] = Math.floor(Math.random() * 3 + 20);
+                shipArr[i][2] += shipArr[i][6] * Math.sin((shipArr[i][1] + 90) * Math.PI / 180);
+                shipArr[i][3] += shipArr[i][6] * Math.cos((shipArr[i][1] + 90) * Math.PI / 180);
+
+                // 알파벳 각도에따라 회전시키기
+                if (shipArr[i][5] >= -180 && shipArr[i][5] < -165) {
+                    leftForce[i] = -20 - (-180 - shipArr[i][5]) * (5 / 15);
+                    topForce[i] = 2 - (-180 - shipArr[i][5]) * (10 / 15);
+                    leftTerm[i] = 500 - (-180 - shipArr[i][5]) * (-50 / 15);
+                    topTerm[i] = -40 - (-180 - shipArr[i][5]) * (-120 / 15);
+                } else if (shipArr[i][5] >= -165 && shipArr[i][5] < -150) {
+                    leftForce[i] = -15 - (-165 - shipArr[i][5]) * (3.5 / 15);
+                    topForce[i] = 12 - (-165 - shipArr[i][5]) * (6 / 15);
+                    leftTerm[i] = 450 - (-165 - shipArr[i][5]) * (-35 / 15);
+                    topTerm[i] = -160 - (-165 - shipArr[i][5]) * (-120 / 15);
+                } else if (shipArr[i][5] >= -150 && shipArr[i][5] < -135) {
+                    leftForce[i] = -11.5 - (-150 - shipArr[i][5]) * (3.5 / 15);
+                    topForce[i] = 18 - (-150 - shipArr[i][5]) * (6 / 15);
+                    leftTerm[i] = 415 - (-150 - shipArr[i][5]) * (-35 / 15);
+                    topTerm[i] = -280 - (-150 - shipArr[i][5]) * (-120 / 15);
+                } else if (shipArr[i][5] >= -135 && shipArr[i][5] < -120) {
+                    leftForce[i] = -8 - (-135 - shipArr[i][5]) * (6.5 / 15);
+                    topForce[i] = 24 - (-135 - shipArr[i][5]) * (-1 / 15);
+                    leftTerm[i] = 380 - (-135 - shipArr[i][5]) * (-170 / 15);
+                    topTerm[i] = -400 - (-135 - shipArr[i][5]) * (10 / 15);
+                } else if (shipArr[i][5] >= -120 && shipArr[i][5] < -90) {
+                    leftForce[i] = -1.5 - (-120 - shipArr[i][5]) * (6.5 / 30);
+                    topForce[i] = 23 - (-120 - shipArr[i][5]) * (-1 / 30);
+                    leftTerm[i] = 210 - (-120 - shipArr[i][5]) * (-260 / 30);
+                    topTerm[i] = -390 - (-120 - shipArr[i][5]) * (-60 / 30);
+                } else if (shipArr[i][5] >= -90 && shipArr[i][5] < -60) {
+                    leftForce[i] = 5 - (-90 - shipArr[i][5]) * (15 / 30);
+                    topForce[i] = 22 - (-90 - shipArr[i][5]) * (3 / 30);
+                    leftTerm[i] = -50 - (-90 - shipArr[i][5]) * (-240 / 30);
+                    topTerm[i] = -450 - (-90 - shipArr[i][5]) * (50 / 30);
+                } else if (shipArr[i][5] >= -60 && shipArr[i][5] < -30) {
+                    leftForce[i] = 20 - (-60 - shipArr[i][5]) * (5 / 30);
+                    topForce[i] = 25 - (-60 - shipArr[i][5]) * (-10 / 30);
+                    leftTerm[i] = -290 - (-60 - shipArr[i][5]) * (-120 / 30);
+                    topTerm[i] = -400 - (-60 - shipArr[i][5]) * (190 / 30);
+                } else if (shipArr[i][5] >= -30 && shipArr[i][5] < -15) {
+                    leftForce[i] = 25;
+                    topForce[i] = 15 - (-30 - shipArr[i][5]) * (-7.5 / 15);
+                    leftTerm[i] = -410;
+                    topTerm[i] = -210 - (-30 - shipArr[i][5]) * (145 / 15);
+                } else if (shipArr[i][5] >= -15 && shipArr[i][5] < 0) {
+                    leftForce[i] = 25;
+                    topForce[i] = 7.5 - (-15 - shipArr[i][5]) * (-5.5 / 15);
+                    leftTerm[i] = -490 - (-15 - shipArr[i][5]) * (-40 / 15);
+                    topTerm[i] = -65 - (-15 - shipArr[i][5]) * (75 / 15);
+                } else if (shipArr[i][5] >= 0 && shipArr[i][5] < 15) {
+                    leftForce[i] = 25;
+                    topForce[i] = -1 + (15 - shipArr[i][5]) * (3 / 15);
+                    leftTerm[i] = -410 + (15 - shipArr[i][5]) * (-120 / 15);
+                    topTerm[i] = 140 + (15 - shipArr[i][5]) * (-130 / 15);
+                } else if (shipArr[i][5] >= 15 && shipArr[i][5] < 30) {
+                    leftForce[i] = 25;
+                    topForce[i] = -2 + (30 - shipArr[i][5]) * (1 / 15);
+                    leftTerm[i] = -410;
+                    topTerm[i] = 200 + (30 - shipArr[i][5]) * (-60 / 15);
+                } else if (shipArr[i][5] >= 30 && shipArr[i][5] < 45) {
+                    leftForce[i] = 25;
+                    topForce[i] = -7.5 + (45 - shipArr[i][5]) * (5.5 / 15);
+                    leftTerm[i] = -410;
+                    topTerm[i] = 330 + (45 - shipArr[i][5]) * (-130 / 15);
+                } else if (shipArr[i][5] >= 45 && shipArr[i][5] < 60) {
+                    leftForce[i] = 25;
+                    topForce[i] = -13 + (60 - shipArr[i][5]) * (5.5 / 15);
+                    leftTerm[i] = -400 + (60 - shipArr[i][5]) * (-10 / 15);
+                    topTerm[i] = 460 + (60 - shipArr[i][5]) * (-130 / 15);
+                } else if (shipArr[i][5] >= 60 && shipArr[i][5] < 90) {
+                    leftForce[i] = 5 + (90 - shipArr[i][5]) * (20 / 30);
+                    topForce[i] = -20 + (90 - shipArr[i][5]) * (7 / 30);
+                    leftTerm[i] = -50 + (90 - shipArr[i][5]) * (-350 / 30);
+                    topTerm[i] = 520 + (90 - shipArr[i][5]) * (-60 / 30);
+                } else if (shipArr[i][5] >= 90 && shipArr[i][5] < 120) {
+                    leftForce[i] = -8 + (120 - shipArr[i][5]) * (13 / 30);
+                    topForce[i] = -10 + (120 - shipArr[i][5]) * (-10 / 30);
+                    leftTerm[i] = 370 + (120 - shipArr[i][5]) * (-420 / 30);
+                    topTerm[i] = 400 + (120 - shipArr[i][5]) * (120 / 30);
+                } else if (shipArr[i][5] >= 120 && shipArr[i][5] < 150) {
+                    leftForce[i] = -15 + (150 - shipArr[i][5]) * (7 / 30);
+                    topForce[i] = -4 + (150 - shipArr[i][5]) * (-6 / 30);
+                    leftTerm[i] = 500 + (150 - shipArr[i][5]) * (-130 / 30);
+                    topTerm[i] = 230 + (150 - shipArr[i][5]) * (170 / 30);
+                } else if (shipArr[i][5] >= 150 && shipArr[i][5] < 165) {
+                    leftForce[i] = -15;
+                    topForce[i] = -1 + (165 - shipArr[i][5]) * (-3 / 15);
+                    leftTerm[i] = 500;
+                    topTerm[i] = 150 + (165 - shipArr[i][5]) * (80 / 15);
+                } else if (shipArr[i][5] >= 165 && shipArr[i][5] <= 180) {
+                    leftForce[i] = -20 + (180 - shipArr[i][5]) * (5 / 15);
+                    topForce[i] = 2 + (180 - shipArr[i][5]) * (-3 / 15);
+                    leftTerm[i] = 500;
+                    topTerm[i] = -40 + (180 - shipArr[i][5]) * (190 / 15);
+                }
+
+                // 위 정보 바탕으로 위치시키기
+                for (let j = 0; j < vocaLen[i]; j++) {
+
+                    if (j == 0) {
+                        eX[i][j] = shipArr[i][2] + leftTerm[i];
+                        eY[i][j] = shipArr[i][3] + topTerm[i];
+                    } else {
+
+                        eX[i][j] = $('#' + voca[i] + (j - 1)).offset().left;
+                        eY[i][j] = $('#' + voca[i] + (j - 1)).offset().top;
+
+                    }
+
+
+
+
+
+                    // 화면 끝 도달 시 삭제 메소드
+
+                    if (bigX1 > shipArr[i][2] || bigY2 < shipArr[i][3] || bigY1 > shipArr[i][3] || bigX2 < shipArr[i][2]) {
+
+                        if (bigX2 < shipArr[i][2]) {  // quad 1
+                            deg = Math.floor(Math.random() * 84 + 135);
+                            if (deg >= 198 && deg <= 218) {
+                                quad = 5;
+                            } else {
+                                quad = 1;
+                            }
+                        } else if (bigY2 < shipArr[i][3]) {    // quad 2
+                            deg = Math.floor(Math.random() * 129 + 27);
+                            quad = 2;
+                        } else if (bigX1 > shipArr[i][2]) {    // quad 3
+                            deg = Math.floor(Math.random() * 78);
+                            if (deg >= 35) {
+                                deg += 283;
+                            }
+                            quad = 3;
+                        } else {  // quad 4
+                            deg = Math.floor(Math.random() * 144 + 198);
+                            quad = 4;
+
+                        }
+
+
+                        // 내부에 랜덤으로 지나는 박스 
+                        let midPointX = Math.floor(Math.random() * (midX2 - midX1) + midX1);
+                        let midPointY = Math.floor(Math.random() * (midY2 - midY1) + midY1);
+
+
+                        // 각도 계산 deg 
+                        // 1, 0     // 0도 벡터
+
+                        deg = -Math.acos((midPointX - shipArr[i][2]) / (Math.pow(Math.pow((midPointX - shipArr[i][2]), 2) + Math.pow((midPointY - shipArr[i][2]), 2), 1 / 2))) * 180 / Math.PI;    // →(0도) 방향부터 도착점까지 각도
+                        if (quad == 2 || quad == 3) {
+                            deg = -deg;
+                        }
+                        if (quad == 2 || quad == 4) {
+                            rotDeg = deg;
+                            if (quad == 2) {
+                                rotDeg = 90 + (90 - rotDeg);
+                            } else {
+                                rotDeg = -90 + (-90 - rotDeg);
+                            }
+                        } else if (quad == 1 || quad == 3) {
+                            rotDeg = deg + 180;
+                            if (quad == 1) {
+                                rotDeg = -rotDeg;
+
+                            } else {
+                                rotDeg = -deg;
+                                if (midPointY > shipArr[i][2]) {
+                                    deg = -deg;
+                                    rotDeg = -deg;
+                                }
+                                if (rotDeg > 0) {
+                                    rotDeg = rotDeg - 180;
+                                } else {
+                                    rotDeg = rotDeg + 180;
+                                }
+                            }
+                        } else if (quad == 5) {
+                            deg = -180 + (-180 - deg);
+                            rotDeg = -180 + (-180 - deg);
+
+                            if (midPointY > shipArr[i][2]) {
+                                deg = -180 + (-180 - deg);
+                                rotDeg = -180 + (-180 - deg);
+                            }
+                            if (rotDeg < 0) {
+                                rotDeg += 180;
+                            }
+                        }
+                        let speed = Math.floor(Math.random() * 3 + 10);
+
+                        if (rotDeg >= 360) {
+                            rotDeg = rotDeg - 360;
+                        }
+                        if (rotDeg <= -360) {
+                            rotDeg = rotDeg + 360;
+                        }
+
+                        ranDeg[i] = -rotDeg;
+                        shipArr[i] = ([i, deg, shipArr[i][2], shipArr[i][3], quad, -rotDeg, speed, voca[i]]);
+                        break;
+                    }
+
+                }
+            }
+        }
+
+    }, playSecond);
+
+
+    window.addEventListener('mousemove', function (e) {
+
+        for (let j = 0; j < voca.length; j++) {
+
+
+            for (let i = 0; i < vocaLen[j]; i++) {
+                if (i == 0) {
+                    eX[j][i] = e.pageX + leftTerm[j];
+                    eY[j][i] = e.pageY + topTerm[j];
+                } else {
+                    eX[j][i] = $('#' + voca[j] + (i - 1)).offset().left;
+                    eY[j][i] = $('#' + voca[j] + (i - 1)).offset().top;
+                }
+            }
+        }
+    })
+
+
+// 영단어 스크립트 ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ
+
+
+ // ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ 플레이어 조작
+
+    $('#one').css({"left" : $('#oneStart').offset().left + 10 + "px"});
+    $('#one').css({"top" : $('#oneStart').offset().top - 5 + "px"});
+    let leBool = false;
+    let riBool = false;
+    let upBool = false;
+    let doBool = false;
+
+    let tbBorder = [];
+    let tbChar2 = 'a';
+    let tbNum2 = 0;
+
+    for(let i = 0; i < mazeHei; i++){
+
+        for(let j = 0; j < mazeWid; j++){
+            
+            let tbBor = '';
+            if(Math.ceil($('#'+tbChar2+tbNum2).css('border-left-width').substring(0,$('#'+tbChar2+tbNum2).css('border-left-width').length-2)) == 0){
+                tbBor+=0;
+            }else{
+                tbBor+=1;
+            }
+            if(Math.ceil($('#'+tbChar2+tbNum2).css('border-top-width').substring(0,$('#'+tbChar2+tbNum2).css('border-top-width').length-2)) == 0){
+                tbBor+=0;
+            }else{
+                tbBor+=1;
+            }
+            if(Math.ceil($('#'+tbChar2+tbNum2).css('border-right-width').substring(0,$('#'+tbChar2+tbNum2).css('border-right-width').length-2)) == 0){
+                tbBor+=0;
+            }else{
+                tbBor+=1;
+            }
+            if(Math.ceil($('#'+tbChar2+tbNum2).css('border-bottom-width').substring(0,$('#'+tbChar2+tbNum2).css('border-bottom-width').length-2)) == 0){
+                tbBor+=0;
+            }else{
+                tbBor+=1;
+            }
+           
+            // tbBorder [id, td left위치, td top위치, 왼쪽, 위쪽, 오른쪽, 아래쪽 길 여부]
+            tbBorder.push([tbChar2+tbNum2, Math.round($('#'+tbChar2+tbNum2).offset().left), Math.round($('#'+tbChar2+tbNum2).offset().top) , tbBor.substring(0,1),tbBor.substring(1,2),tbBor.substring(2,3),tbBor.substring(3,4)]);
+            
+            tbNum2++;
+            
+        }
+        tbChar2 = String.fromCharCode(tbChar2.charCodeAt(0) + 1);
+        tbNum2=0;
+    }
+
+    console.log(tbBorder);
+    
+    // 테이블 테두리
+    let bdWidth = 0.6;
+    let tdWidth = $('td').innerWidth()+ bdWidth/2;
+    let tdHeight = $('td').innerHeight()+ bdWidth/2;
+
+
+    // 플레이어 테두리
+    let oneBorder = 2;
+    
+    let bdList = []
+
+    for(let i = 0; i < tbBorder.length; i++){
+        
+        if(tbBorder[i][3] == 1){    // 왼쪽 테두리
+            // 첫번째 칸 : 세로인지(-1), 가로인지(-2)
+            bdList.push([-1, tbBorder[i][1] , Math.round(tbBorder[i][1]+oneBorder), tbBorder[i][2], Math.round(tbBorder[i][2]+tdHeight)]);
+        }
+        if(tbBorder[i][4] == 1){    // 위쪽 테두리
+            bdList.push([-2, tbBorder[i][1] , Math.round(tbBorder[i][1]+tdWidth), tbBorder[i][2], Math.round(tbBorder[i][2]+oneBorder)]);
+        }
+        if(tbBorder[i][5] == 1){    // 오른쪽 테두리
+            bdList.push([-1, Math.round(tbBorder[i][1]+tdWidth-oneBorder) , Math.round(tbBorder[i][1]+tdWidth), tbBorder[i][2], Math.round(tbBorder[i][2]+tdHeight)]);
+        }
+        if(tbBorder[i][6] == 1){    // 아래쪽 테두리
+            bdList.push([-2, tbBorder[i][1] , Math.round(tbBorder[i][1]+tdWidth), Math.round(tbBorder[i][2]+tdHeight-oneBorder), Math.round(tbBorder[i][2]+tdHeight)]);
+        }        
+    }
+    
+    console.log(bdList);
+
+    
+    addEventListener('keydown', function(e){
+        
+        if(e.keyCode == 37){    // 왼쪽
+            leBool = true;
+        }else if(e.keyCode == 38){  // 위쪽
+            upBool = true;
+        }else if(e.keyCode == 39){  // 오른쪽
+            riBool = true;
+        }else if(e.keyCode == 40){  // 아래쪽
+            doBool = true;
+        }
+
+    })
+
+    addEventListener('keyup', function(e){
+        
+        if(e.keyCode == 37){    // 왼쪽
+            leBool = false;
+        }else if(e.keyCode == 38){  // 위쪽
+            upBool = false;
+        }else if(e.keyCode == 39){  // 오른쪽
+            riBool = false;
+        }else if(e.keyCode == 40){  // 아래쪽
+            doBool = false;
+        }
+    })
+
+
+    let leBool2 = false;
+    let upBool2 = false;
+    let riBool2 = false;
+    let doBool2 = false;
+    
+    let oneWidth = Number($('#one').css('width').substring(0,$('#one').css('width').length-2));
+    let oneHeight = Number($('#one').css('height').substring(0,$('#one').css('height').length-2));
+
+    
+    let oneSpeed = 2;
+    setInterval(() => {
+        // 바운다리 오른쪽부분 bdList[i][2], bdList[i][3]~ bdList[i][2],bdList[i][4] 두 점 부분이 one 왼쪽부분 oneBoundary 1 포함해서 oneLeft-1 ~ oneLeft+1, oneTop~ oneTop+oneHeigt 닿는지 체크
+        // 추가로 one의 왼부분안에 ㅡ 바운다리가 포함되는지 or one의 top부분이 바운다리 ㅣ에 포함되는지 or one의 맨아래 부분이 바운다리 ㅣ에 포함되는지
+        if(leBool){
+            leBool2 = false;
+            for(let i = 0 ; i < bdList.length; i++){
+                if(bdList[i][2] > ($('#one').offset().left-oneBorder) && bdList[i][2] < ($('#one').offset().left+oneBorder) && ((bdList[i][3] > ($('#one').offset().top) && bdList[i][4] < ($('#one').offset().top)+oneHeight) || (bdList[i][3] < ($('#one').offset().top) && bdList[i][4] > ($('#one').offset().top)) || (bdList[i][3] < ($('#one').offset().top + oneHeight) && bdList[i][4] > ($('#one').offset().top + oneHeight)))){
+                    leBool2 = true;
+                    break;
+                }else{
+                }
+            }
+            if(leBool2){
+                $('#one').css({'left' : ($('#one').offset().left + 3)+ 'px'});
+            }else{
+                $('#one').css({'left' : ($('#one').offset().left-oneSpeed)+ 'px'});
+            }
+            
+            
+        // 바운다리 아래 bdList[i][1], bdList[i][4] ~ bdList[i][2],bdList[i][4] 두 점 부분이 one 위쪽부분 oneBoundary 1 포함해서 oneLeft ~ oneLeft+oneWidth, oneTop-1~ oneTop+1 닿는지 체크    
+        }else if(upBool){
+            upBool2 = false;
+            for(let i = 0 ; i < bdList.length; i++){
+                if(((bdList[i][1] > ($('#one').offset().left) && bdList[i][2] < ($('#one').offset().left + oneWidth)) || (bdList[i][1] < ($('#one').offset().left) && bdList[i][2] > ($('#one').offset().left)) || (bdList[i][1] < ($('#one').offset().left + oneWidth) && bdList[i][2] > ($('#one').offset().left + oneWidth))) && bdList[i][4] > ($('#one').offset().top - oneBorder ) && bdList[i][4] < ($('#one').offset().top + oneBorder)){
+                    upBool2 = true;
+                    break;
+                }else{
+                }
+            }
+            if(upBool2){
+                $('#one').css({'top' : ($('#one').offset().top + 3)+ 'px'});
+            }else{
+                $('#one').css({'top' : ($('#one').offset().top - oneSpeed)+ 'px'});
+            }
+            
+        // 바운다리 왼쪽부분 bdList[i][1], bdList[i][3]~ bdList[i][1],bdList[i][4] -  oneLeft + oneWidth -1 ~ oneLeft+ oneWidth + 1, oneTop~ oneTop+oneHeigt 닿는지 체크
+        }else if(riBool){
+            riBool2 = false;
+            for(let i = 0 ; i < bdList.length; i++){
+                if(bdList[i][1] > ($('#one').offset().left + oneWidth - oneBorder) && bdList[i][1] < ($('#one').offset().left + oneWidth + oneBorder) && ((bdList[i][3] > ($('#one').offset().top) && bdList[i][4] < ($('#one').offset().top + oneHeight)) || (bdList[i][3] < ($('#one').offset().top) && bdList[i][4] > ($('#one').offset().top)) || (bdList[i][3] < ($('#one').offset().top + oneHeight) && bdList[i][4] > ($('#one').offset().top + oneHeight)))){
+                    riBool2 = true;
+                    break;
+                }else{
+                }
+            }
+            if(riBool2){
+                $('#one').css({'left' : ($('#one').offset().left - 3)+ 'px'});
+            }else{
+                $('#one').css({'left' : ($('#one').offset().left + oneSpeed)+ 'px'});
+            }
+          
+        // 바운다리 위 bdList[i][1], bdList[i][3] ~ bdList[i][2],bdList[i][3]과 oneLeft ~ oneLeft+oneWidth, oneTop + oneHeight -1 ~ oneTop + oneHeight + 1 닿는지 체크        
+        }else if(doBool){
+            doBool2 = false;
+            for(let i = 0 ; i < bdList.length; i++){
+                if(((bdList[i][1] > ($('#one').offset().left) && bdList[i][2] < ($('#one').offset().left + oneWidth)) || (bdList[i][1] < ($('#one').offset().left) && bdList[i][2] > ($('#one').offset().left)) || (bdList[i][1] < ($('#one').offset().left + oneWidth) && bdList[i][2] > ($('#one').offset().left + oneWidth))) && bdList[i][3] > ($('#one').offset().top + oneHeight - oneBorder) && bdList[i][3] < ($('#one').offset().top + oneHeight + oneBorder)){
+                    doBool2 = true;
+                    break;
+                }else{
+                }
+            }
+            if(doBool2){
+                $('#one').css({'top' : ($('#one').offset().top - 3)+ 'px'});
+            }else{
+                $('#one').css({'top' : ($('#one').offset().top+oneSpeed)+ 'px'});
+            }
+        }
+    }, 10);
+
+    let alpBound = 50;
+    let alpBool = true;
+    let boolCount = 0;
+
+    setInterval(() => {
+        
+
+        if(alpBool){
+        for(let i = 0; i <voca.length; i++){
+            for(let j = 0; j < vocaLen[i]; j++){
+                // one이 단어 바운더리 안에 들어갈때
+                if( ( Math.pow($('#'+ voca[i]+ j).offset().left - $('#one').offset().left, 2) + Math.pow($('#'+ voca[i]+ j).offset().top - $('#one').offset().top,2) ) <= alpBound  ){
+                    prompt(String(voca[i]) + " 의 뜻은?");
+                    $("."+voca[i]).css("display","none");
+                    alpBool = false;
+                    leBool = false;
+                    riBool = false;
+                    upBool = false;
+                    doBool = false;
+                }
+                if( ( Math.pow($('#'+ voca[i]+ j).offset().left - ($('#one').offset().left + oneWidth), 2) + Math.pow($('#'+ voca[i]+ j).offset().top - $('#one').offset().top,2) ) <= alpBound  ){
+                    prompt(String(voca[i]) + " 의 뜻은?");
+                    $("."+voca[i]).css("display","none");
+                    alpBool = false;
+                    leBool = false;
+                    riBool = false;
+                    upBool = false;
+                    doBool = false;
+                }
+                if( ( Math.pow($('#'+ voca[i]+ j).offset().left - $('#one').offset().left, 2) + Math.pow($('#'+ voca[i]+ j).offset().top - ($('#one').offset().top + oneHeight),2) ) <= alpBound  ){
+                    prompt(String(voca[i]) + " 의 뜻은?");
+                    $("."+voca[i]).css("display","none");
+                    alpBool = false;
+                    leBool = false;
+                    riBool = false;
+                    upBool = false;
+                    doBool = false;
+                }
+                if( ( Math.pow($('#'+ voca[i]+ j).offset().left - ($('#one').offset().left + oneWidth), 2) + Math.pow($('#'+ voca[i]+ j).offset().top - ($('#one').offset().top + oneHeight),2) ) <= alpBound  ){
+                    prompt(String(voca[i]) + " 의 뜻은?");
+                    $("."+voca[i]).css("display","none");
+                    alpBool = false;
+                    leBool = false;
+                    riBool = false;
+                    upBool = false;
+                    doBool = false;
+                }
+                }
+            }
+        }else{
+            boolCount += 1;
+            if(boolCount >= 30){
+                alpBool = true;
+                boolCount = 0;
+            }
+        }
+
+
+    }, 50);
+
+
+
+</script>
+
+</html>
